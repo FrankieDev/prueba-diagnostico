@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PRUEBA DE DIAGNOSTICO</title>
+    <style>
+      h3 {
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      form {
+        width: 580px;
+        border-top: solid 1px #ccc;
+        border-left: solid 1px #ccc;
+      }
+
+      .mt-1 {
+        margin-top: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h3>FORMULARIO DE VOTACIÓN:</h3>
+      <form action="procesar.php" method="post">
+        <table width="580">
+          <tr>
+            <td>Nombre y Apellido</td>
+            <td><input type="text" name="nombre" id="nombre" /></td>
+          </tr>
+          <tr>
+            <td>Alias</td>
+            <td><input type="text" name="alias" id="alias" /></td>
+          </tr>
+          <tr>
+            <td>RUT</td>
+            <td><input type="text" name="rut" id="rut" /></td>
+          </tr>
+          <tr>
+            <td>Email</td>
+            <td><input type="email" name="email" id="email" /></td>
+          </tr>
+          <tr>
+            <td>Región</td>
+            <td>
+              <select type="text" name="region" id="region">
+                <option value="">Seleccionar</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Comuna</td>
+            <td>
+              <select type="text" name="comuna" id="comuna">
+                <option value="">Seleccionar</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Candidato</td>
+            <td>
+              <select name="candidato" id="candidato">
+                <option value="">Seleccionar</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>Como se enteró de nosotros</td>
+            <td>
+              <label for="canal_web"
+                ><input
+                  type="checkbox"
+                  name="canal[]"
+                  id="canal_web"
+                  value="Web"
+                />Web</label
+              >
+              <label for="canal_tv"
+                ><input
+                  type="checkbox"
+                  name="canal[]"
+                  id="canal_tv"
+                  value="TV"
+                />TV</label
+              >
+              <label for="canal_redes"
+                ><input
+                  type="checkbox"
+                  name="canal[]"
+                  id="canal_redes"
+                  value="Redes Sociales"
+                />Redes Sociales</label
+              >
+              <label for="canal_amigo"
+                ><input
+                  type="checkbox"
+                  name="canal[]"
+                  id="canal_amigo"
+                  value="Amigo"
+                />Amigo</label
+              >
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <input type="submit" value="Votar" class="mt-1" />
+            </td>
+          </tr>
+        </table>
+      </form>
+    </div>
+  </body>
+  <script src="js/jquery-3.3.1.min.js"></script>
+  <script src="js/jquery.Rut.min.js"></script>
+  <script>
+    const form = document.querySelector('form')
+    form.addEventListener('submit', (e) => {
+      e.preventDefault()
+
+      const nombre = document.getElementById('nombre').value
+      const alias = document.getElementById('alias').value
+      const rut = document.getElementById('rut').value
+      const email = document.getElementById('email').value
+      const region = document.getElementById('region').value
+      const comuna = document.getElementById('comuna').value
+      const candidato = document.getElementById('candidato').value
+      const canales = document.querySelectorAll('input[name="canal[]"]')
+      const canalArr = []
+
+      canales.forEach((canal) => {
+        if (canal.checked) {
+          canalArr.push(canal.value)
+        }
+      })
+
+      if (nombre === '') {
+        alert('Debe ingresar un nombre')
+        return
+      }
+
+      if (!$.Rut.validar(rut)) {
+        alert('Debe ingresar un rut válido')
+        return
+      }
+
+      if (email === '') {
+        alert('Debe ingresar un email')
+        return
+      }
+
+      if (region === '') {
+        alert('Debe seleccionar una región')
+        return
+      }
+
+      if (comuna === '') {
+        alert('Debe seleccionar una comuna')
+        return
+      }
+
+      if (candidato === '') {
+        alert('Debe seleccionar un candidato')
+        return
+      }
+
+      if (canalArr.length < 2) {
+        alert('Debe seleccionar al menos 2 canales')
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('accion', 'guardarVoto')
+      formData.append(
+        'data',
+        JSON.stringify({
+          nombre,
+          alias,
+          rut,
+          email,
+          region,
+          comuna,
+          candidato,
+          canalArr
+        })
+      )
+
+      const enviarVoto = fetch('ajax.php', {
+        method: 'POST',
+        body: formData
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          alert(data.message)
+        })
+    })
+
+    document.getElementById('region').addEventListener('change', (e) => {
+      const region = e.target.value
+
+      const comunas = fetch(`ajax.php?accion=getComunas&region=${region}`)
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data)
+
+          const selectComunas = document.getElementById('comuna')
+          selectComunas.innerHTML = ''
+
+          const opcionPorDefecto = document.createElement('option')
+          opcionPorDefecto.value = ''
+          opcionPorDefecto.text = 'Seleccionar'
+          selectComunas.appendChild(opcionPorDefecto)
+
+          data.forEach((comuna) => {
+            const option = document.createElement('option')
+            option.value = comuna.id
+            option.text = comuna.descripcion
+            selectComunas.appendChild(option)
+          })
+        })
+    })
+
+    getRegiones()
+    function getRegiones() {
+      const regiones = fetch('ajax.php?accion=getRegiones')
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data)
+
+          const selectRegiones = document.getElementById('region')
+          data.forEach((region) => {
+            const option = document.createElement('option')
+            option.value = region.id
+            option.text = region.descripcion
+            selectRegiones.appendChild(option)
+          })
+        })
+    }
+
+    getCandidatos()
+    function getCandidatos() {
+      const candidatos = fetch('ajax.php?accion=getCandidatos')
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data)
+
+          const selectCandidatos = document.getElementById('candidato')
+          data.forEach((candidato) => {
+            const option = document.createElement('option')
+            option.value = candidato.id
+            option.text = candidato.descripcion
+            selectCandidatos.appendChild(option)
+          })
+        })
+    }
+  </script>
+</html>
